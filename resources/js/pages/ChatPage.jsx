@@ -4,7 +4,7 @@ export function ChatPage() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
-    const [useRag, setUseRag] = useState(true);
+    const [useRag, setUseRag] = useState(false);
     const [token, setToken] = useState(() => sessionStorage.getItem('chatbot_token') || '');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
