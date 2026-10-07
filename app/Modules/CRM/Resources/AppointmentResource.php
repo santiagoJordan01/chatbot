@@ -13,6 +13,7 @@ class AppointmentResource extends JsonResource
             'id' => $this->id,
             'business_id' => $this->business_id,
             'lead_id' => $this->lead_id,
+            'lead_name' => $this->lead?->name,
             'created_by' => $this->created_by,
             'service_type' => $this->service_type,
             'starts_at' => $this->starts_at,

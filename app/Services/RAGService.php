@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
+
 class RAGService
 {
     protected GroqClient $groq;
@@ -15,33 +17,45 @@ class RAGService
 
     /**
      * Answer a query using retrieval-augmented generation.
+     *
+     * @param  array<int, array{role: string, content: string}>  $history
      */
-    public function answer(string $query, int $k = 3): array
+    public function answer(string $query, int $k = 3, array $history = []): array
     {
-        $resp = $this->groq->embeddings($query);
-        $vector = $this->extractVector($resp);
-
-        if (empty($vector)) {
-            // fallback to direct generation
-            return $this->groq->chat($query);
-        }
-
-        $nearest = $this->embeddings->findNearestByVector($vector, $k);
-
         $contexts = [];
-        foreach ($nearest as $item) {
-            $row = $item['row'];
-            $meta = $row->metadata ?? [];
-            if (is_array($meta) && isset($meta['text'])) {
-                $contexts[] = $meta['text'];
-            } else {
-                $contexts[] = ($meta['title'] ?? $row->source_id ?? $row->id);
+
+        try {
+            $resp = $this->groq->embeddings('search_query: '.$query);
+            $vector = $this->extractVector($resp);
+
+            if ($vector !== []) {
+                foreach ($this->embeddings->findNearestByVector($vector, $k) as $item) {
+                    $meta = $item['row']->metadata ?? [];
+                    if (is_array($meta) && ! empty($meta['text'])) {
+                        $contexts[] = $meta['text'];
+                    }
+                }
             }
+        } catch (\Throwable $e) {
+            Log::warning('No se pudo recuperar contexto de la clínica', [
+                'error' => $e->getMessage(),
+            ]);
         }
 
-        $prompt = "Use the following context to answer the question:\n" . implode("\n---\n", $contexts) . "\n\nQuestion: " . $query;
+        $contextBlock = $contexts === []
+            ? 'No hay información relevante cargada.'
+            : implode("\n---\n", $contexts);
 
-        return $this->groq->chat($prompt);
+        $messages = array_merge(
+            [['role' => 'system', 'content' => (string) config('groq.system_prompt')]],
+            $history,
+            [[
+                'role' => 'user',
+                'content' => "Contexto de la clínica:\n{$contextBlock}\n\nReglas: no asumas que el turno es una limpieza. De 10 a 25 kg, incluido 25 kg, la limpieza cuesta 240.000 pesos. No digas que una hora está libre. El ayuno de 8 horas no es una hora de llegada.\n\nPregunta: {$query}",
+            ]],
+        );
+
+        return $this->groq->chat($query, ['messages' => $messages]);
     }
 
     protected function extractVector(array $resp): array

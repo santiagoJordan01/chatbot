@@ -72,6 +72,9 @@ Quick steps to finish and test the Groq integration added to this project:
 - Add your Groq API key to `.env`:
 
 	GROQ_API_KEY=your_key_here
+	GROQ_BASE_URL=https://api.groq.com/openai/v1
+	GROQ_ENDPOINT=/chat/completions
+	GROQ_MODEL=openai/gpt-oss-20b
 
 - Run migrations:
 

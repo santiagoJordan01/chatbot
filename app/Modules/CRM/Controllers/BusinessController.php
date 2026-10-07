@@ -31,6 +31,11 @@ class BusinessController extends ApiController
         $this->authorize('create', Business::class);
 
         $business = $this->businessService->create($request->validated());
+        $user = $request->user();
+
+        if ($user && $user->business_id === null) {
+            $user->forceFill(['business_id' => $business->id])->save();
+        }
 
         return $this->success(new BusinessResource($business), 'Business created', 201);
     }

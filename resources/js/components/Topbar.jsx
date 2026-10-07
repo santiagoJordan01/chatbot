@@ -1,7 +1,10 @@
+import { useNavigate } from 'react-router-dom';
 import { useUiStore } from '../state/uiStore';
 
 export function Topbar() {
     const toggleSidebar = useUiStore((s) => s.toggleSidebar);
+    const openLeadComposer = useUiStore((s) => s.openLeadComposer);
+    const navigate = useNavigate();
 
     return (
         <header className="mb-4 flex items-center justify-between rounded-2xl border border-slate-200/70 bg-white/80 px-4 py-3 shadow-soft backdrop-blur">
@@ -17,7 +20,14 @@ export function Topbar() {
                 >
                     Menu
                 </button>
-                <button type="button" className="rounded-lg bg-ink px-3 py-2 text-sm text-white">
+                <button
+                    type="button"
+                    className="rounded-lg bg-ink px-3 py-2 text-sm text-white"
+                    onClick={() => {
+                        openLeadComposer();
+                        navigate('/leads');
+                    }}
+                >
                     Nuevo Lead
                 </button>
             </div>

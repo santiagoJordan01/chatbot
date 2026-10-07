@@ -3,19 +3,39 @@
 namespace App\Modules\Core\Auth\Services;
 
 use App\Models\User;
+use App\Modules\CRM\Models\Business;
 use App\Shared\Exceptions\ApiException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AuthService
 {
     public function register(array $payload): User
     {
-        return User::query()->create([
-            'name' => $payload['name'],
-            'email' => $payload['email'],
-            'password' => Hash::make($payload['password']),
-            'business_id' => $payload['business_id'] ?? null,
-        ]);
+        return DB::transaction(function () use ($payload) {
+            $user = User::query()->create([
+                'name' => $payload['name'],
+                'email' => $payload['email'],
+                'password' => Hash::make($payload['password']),
+                'business_id' => $payload['business_id'] ?? null,
+            ]);
+
+            if ($user->business_id !== null) {
+                return $user;
+            }
+
+            $base = Str::slug($payload['name']) ?: 'clinica';
+            $business = Business::query()->create([
+                'name' => $payload['name'],
+                'slug' => $base.'-'.$user->id,
+                'business_type' => 'veterinary',
+                'timezone' => 'America/Bogota',
+            ]);
+            $user->forceFill(['business_id' => $business->id])->save();
+
+            return $user->fresh();
+        });
     }
 
     public function attemptLogin(array $credentials): array

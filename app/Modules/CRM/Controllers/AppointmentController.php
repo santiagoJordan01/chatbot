@@ -20,6 +20,7 @@ class AppointmentController extends ApiController
         $businessId = (int) $request->integer('business_id', $request->user()?->business_id ?? 0);
 
         $appointments = Appointment::query()
+            ->with('lead')
             ->where('business_id', $businessId)
             ->latest('starts_at')
             ->paginate((int) $request->integer('per_page', 15));
@@ -69,8 +70,15 @@ class AppointmentController extends ApiController
         $this->authorize('update', $appointment);
 
         $appointment->update(['status' => 'confirmed']);
+        $appointment->refresh()->load('lead');
 
-        return $this->success(new AppointmentResource($appointment->refresh()), 'Appointment confirmed');
+        app(\App\Modules\Automation\Services\AutomationRunner::class)->run(
+            $appointment->business_id,
+            'appointment.confirmed',
+            ['lead_id' => $appointment->lead_id],
+        );
+
+        return $this->success(new AppointmentResource($appointment), 'Appointment confirmed');
     }
 
     public function cancel(Appointment $appointment, Request $request): JsonResponse

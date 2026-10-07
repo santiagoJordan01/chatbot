@@ -1,8 +1,10 @@
 <?php
 
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -21,11 +23,30 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
+            if ($exception instanceof \Illuminate\Auth\AuthenticationException) {
+                return response()->json([
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+
             if ($exception instanceof \App\Shared\Exceptions\ApiException) {
                 return response()->json([
                     'message' => $exception->getMessage(),
                     'errors' => $exception->errors(),
                 ], $exception->status());
+            }
+
+            if ($exception instanceof ValidationException) {
+                return response()->json([
+                    'message' => $exception->getMessage(),
+                    'errors' => $exception->errors(),
+                ], $exception->status);
+            }
+
+            if ($exception instanceof AuthorizationException) {
+                return response()->json([
+                    'message' => $exception->getMessage() ?: 'This action is unauthorized.',
+                ], 403);
             }
 
             $status = $exception instanceof HttpExceptionInterface

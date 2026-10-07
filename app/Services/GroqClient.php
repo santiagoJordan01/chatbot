@@ -29,7 +29,9 @@ class GroqClient
     {
         $payload = array_merge([
             'model' => $this->model,
-            'input' => $input,
+            'messages' => [
+                ['role' => 'user', 'content' => $input],
+            ],
         ], $options);
 
         $url = $this->baseUrl . $this->endpoint;
@@ -47,27 +49,30 @@ class GroqClient
     }
 
     /**
-     * Convenience method for embeddings (if supported by Groq endpoint).
+     * Create an embedding with the local model (Ollama).
      */
     public function embeddings(string $text, array $options = []): array
     {
+        $baseUrl = rtrim((string) config('embeddings.base_url'), '/');
+        $apiKey = (string) config('embeddings.api_key', '');
+        $timeout = (int) config('embeddings.timeout', $this->timeout);
+
         $payload = array_merge([
-            'model' => $this->model,
+            'model' => config('embeddings.model', 'nomic-embed-text'),
             'input' => $text,
-            'type' => 'embedding',
         ], $options);
 
-        $url = $this->baseUrl . $this->endpoint;
+        $request = Http::acceptJson()->timeout($timeout);
+        if ($apiKey !== '') {
+            $request = $request->withToken($apiKey);
+        }
 
-        $response = Http::withToken($this->apiKey)
-            ->acceptJson()
-            ->timeout($this->timeout)
-            ->post($url, $payload);
+        $response = $request->post($baseUrl.'/embeddings', $payload);
 
         if ($response->successful()) {
             return $response->json();
         }
 
-        throw new \RuntimeException('Groq API request failed: ' . $response->body(), $response->status());
+        throw new \RuntimeException('Embedding request failed: '.$response->body(), $response->status());
     }
 }

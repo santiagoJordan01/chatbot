@@ -15,7 +15,7 @@ class EmbeddingService
 
     public function createFromText(string $sourceType, string $sourceId, string $text, array $metadata = []): Embedding
     {
-        $resp = $this->groq->embeddings($text);
+        $resp = $this->groq->embeddings('search_document: '.$text);
         $vector = $this->extractVector($resp);
 
         return Embedding::create([

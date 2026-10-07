@@ -11,9 +11,9 @@ if (file_exists($root . '/.env')) {
 }
 
 $apiKey = getenv('GROQ_API_KEY') ?: null;
-$base = getenv('GROQ_BASE_URL') ?: 'https://api.groq.ai';
-$endpoint = getenv('GROQ_ENDPOINT') ?: '/v1/generate';
-$model = getenv('GROQ_MODEL') ?: 'llama-3.3-70b';
+$base = getenv('GROQ_BASE_URL') ?: 'https://api.groq.com/openai/v1';
+$endpoint = getenv('GROQ_ENDPOINT') ?: '/chat/completions';
+$model = getenv('GROQ_MODEL') ?: 'openai/gpt-oss-20b';
 
 if (empty($apiKey)) {
     echo "GROQ_API_KEY is not set. Please add it to your .env file and retry.\n";
@@ -30,7 +30,9 @@ try {
         ],
         'json' => [
             'model' => $model,
-            'input' => 'Hello from integration test',
+            'messages' => [
+                ['role' => 'user', 'content' => 'Hello from integration test'],
+            ],
         ],
         'timeout' => 10,
     ]);
